@@ -59,7 +59,6 @@ public class MainActivity extends ComponentActivity{
         super.onPause();
         // Unregister the receiver to avoid memory leaks
         LocalBroadcastManager.getInstance(this).unregisterReceiver(dataReceiver);
-
     }
 
     private class DataReceiver extends BroadcastReceiver {

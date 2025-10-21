@@ -38,7 +38,7 @@ public class DataProccessor {
 
             if (dataFile.length() == 0) {
                 // Note: The rawData from the watch does NOT include the final 'label' column.
-                dataWriter.append("timestamp,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z,heart_rate,steps,gps_lat,gps_lon\n");
+                dataWriter.append("timestamp,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z,heart_rate,gps_lat,gps_lon\n");
             }
             if (labelFile.length() == 0) {
                 labelFileWriter.append("timestamp,event_type\n");

@@ -58,7 +58,7 @@ public class DataLayerListenerService extends WearableListenerService{
             String[] parts = rawData.split(",");
             if (parts.length >= 8) {
                 // Heart Rate is the 8th element (index 7)
-                return parts[7];
+                return parts[6];
             }
         } catch (Exception e) {
             Log.e(TAG, "Error parsing HR data: " + e.getMessage());

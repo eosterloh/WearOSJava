@@ -20,6 +20,7 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import android.location.Location;
+import com.google.android.gms.location.Priority;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
@@ -34,7 +35,7 @@ public class SensorService implements SensorEventListener {
     private Sensor accelerometer;
     private Sensor gyroscope;
     private Sensor heartRateSensor;
-    private Sensor stepCounterSensor;
+    //private Sensor stepCounterSensor;
     private SensorDataUpdateListener listener; // Added listener field
     // Context for android
     private Context context;
@@ -48,7 +49,7 @@ public class SensorService implements SensorEventListener {
     private float[] latestAccel = {0.0f, 0.0f, 0.0f}; // X, Y, Z
     private float[] latestGyro = {0.0f, 0.0f, 0.0f}; // X, Y, Z
     private float latestHeartRate = 0.0f;
-    private float latestSteps = 0.0f;
+    //private float latestSteps = 0.0f;
     //Paths of services
     private static final String TAG = "SensorService";
     private static final String ACCEL_DATA_PATH = "/accel_data";
@@ -94,13 +95,13 @@ public class SensorService implements SensorEventListener {
             if (heartRateSensor != null) sensorManager.registerListener(this, heartRateSensor, SensorManager.SENSOR_DELAY_NORMAL);
 
             // 4. STEP COUNTER
-            if (stepCounterSensor == null) stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
-            if (stepCounterSensor != null) sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL);
+            //if (stepCounterSensor == null) stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+            //if (stepCounterSensor != null) sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL);
 
             // 5. GPS LOCATION (Fused Location Provider)
-            LocationRequest locationRequest = LocationRequest.create()
-                    .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                    .setInterval(5000); // Update every 5 seconds (5000ms)
+            LocationRequest locationRequest = new LocationRequest.Builder(5000) // Interval in milliseconds
+                    .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
+                    .build();
 
             // Ensure you have permission granted here (usually done in MainActivity)
             // This is pseudo-code for the permission check:
@@ -128,12 +129,11 @@ public class SensorService implements SensorEventListener {
         long timestamp = System.currentTimeMillis();
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             latestAccel = event.values.clone();
-            String payload = String.format("%d,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.1f,%.0f,%s",
+            String payload = String.format("%d,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.1f,%s",
                     timestamp,
                     latestAccel[0], latestAccel[1], latestAccel[2],
                     latestGyro[0], latestGyro[1], latestGyro[2],
                     latestHeartRate,
-                    latestSteps,
                     latestGpsData // Format is "Lat,Lon"
             );
 
@@ -150,9 +150,9 @@ public class SensorService implements SensorEventListener {
         else if (event.sensor.getType() == Sensor.TYPE_HEART_RATE) {
             latestHeartRate = event.values[0];
         }// 4. STEP COUNTER: Just store the latest value
-        else if (event.sensor.getType() == Sensor.TYPE_STEP_COUNTER) {
-            latestSteps = event.values[0];
-        }
+        //else if (event.sensor.getType() == Sensor.TYPE_STEP_COUNTER) {
+        //  latestSteps = event.values[0];
+        //}
     }
 
     public void sendMessageToPhone(byte[] payload) {
