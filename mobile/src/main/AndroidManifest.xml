@@ -25,10 +25,9 @@
             android:name=".DataLayerListenerService"
             android:exported="true">
             <intent-filter>
-                <!-- This intent filter tells the system that this service can receive messages -->
                 <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
-                <!-- Add a data filter to be more specific about which messages to wake up for -->
                 <data android:scheme="wear" android:host="*" android:pathPrefix="/accel_data" />
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/swing_label" />
             </intent-filter>
         </service>
     </application>

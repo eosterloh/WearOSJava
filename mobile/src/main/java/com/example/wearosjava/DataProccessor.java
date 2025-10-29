@@ -38,7 +38,7 @@ public class DataProccessor {
 
             if (dataFile.length() == 0) {
                 // Note: The rawData from the watch does NOT include the final 'label' column.
-                dataWriter.append("timestamp,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z,heart_rate,gps_lat,gps_lon\n");
+                dataWriter.append("timestamp,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z,heart_rate\n");
             }
             if (labelFile.length() == 0) {
                 labelFileWriter.append("timestamp,event_type\n");
@@ -69,10 +69,14 @@ public class DataProccessor {
             try {
                 long timestamp = System.currentTimeMillis();
                 labelFileWriter.append(timestamp + "," + event + "\n");
+                labelFileWriter.flush();
                 Log.i(TAG, "Swing Event Logged");
             } catch (IOException e) {
                 Log.e(TAG, "Error logging swing: " + e.getMessage());
             }
+        } else {
+            // NEW DIAGNOSTIC LINE: Tell yourself the button was pressed too soon!
+            Log.e(TAG, "Error: Cannot log swing. File writer is NULL. Service not ready.");
         }
     }
 

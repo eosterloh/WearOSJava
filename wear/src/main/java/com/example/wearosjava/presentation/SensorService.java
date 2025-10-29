@@ -20,8 +20,8 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import android.location.Location;
-import com.google.android.gms.location.Priority;
-
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import androidx.core.content.ContextCompat;
@@ -42,9 +42,9 @@ public class SensorService implements SensorEventListener {
 
 
     // --- GPS Declarations ---
-    private FusedLocationProviderClient fusedLocationClient;
-    private LocationCallback locationCallback;
-    private String latestGpsData = "0.0,0.0";
+    //private FusedLocationProviderClient fusedLocationClient;
+    //private LocationCallback locationCallback;
+    //private String latestGpsData = "0.0,0.0";
     // --- LAST KNOWN VALUE DECLERATIONS ---
     private float[] latestAccel = {0.0f, 0.0f, 0.0f}; // X, Y, Z
     private float[] latestGyro = {0.0f, 0.0f, 0.0f}; // X, Y, Z
@@ -53,18 +53,21 @@ public class SensorService implements SensorEventListener {
     //Paths of services
     private static final String TAG = "SensorService";
     private static final String ACCEL_DATA_PATH = "/accel_data";
+    private static final String LABEL_DATA_PATH = "/swing_label";
+
+    private ExecutorService executorService;
 
     public SensorService(Context context, SensorDataUpdateListener listener) { // Corrected constructor
         this.context = context;
         this.listener = listener; // Initialized listener
         if (context != null) {
             sensorManager = (SensorManager) context.getSystemService(SENSOR_SERVICE);
-            fusedLocationClient = LocationServices.getFusedLocationProviderClient(context); // Initialize GPS client
-            createLocationCallback();
+            //fusedLocationClient = LocationServices.getFusedLocationProviderClient(context); // Initialize GPS client
+            //createLocationCallback();
         }
     }
 
-
+    /*
     private void createLocationCallback() {
         locationCallback = new LocationCallback() {
             @Override
@@ -73,15 +76,18 @@ public class SensorService implements SensorEventListener {
                 Location location = locationResult.getLastLocation();
                 if (location != null) {
                     // Update the latest known GPS data
-                    latestGpsData = location.getLatitude() + "," + location.getLongitude();
+                    //latestGpsData = location.getLatitude() + "," + location.getLongitude();
                     Log.d(TAG, "GPS Updated: " + latestGpsData);
                 }
             }
         };
     }
-
+    */
     public void startListen() {
         if (sensorManager != null) {
+            if (executorService == null || executorService.isShutdown()) {
+                executorService = Executors.newSingleThreadExecutor();
+            }
             // 1. ACCELEROMETER (already done)
             if (accelerometer == null) accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
             if (accelerometer != null) sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST); // Use FASTEST for ML data
@@ -99,19 +105,12 @@ public class SensorService implements SensorEventListener {
             //if (stepCounterSensor != null) sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL);
 
             // 5. GPS LOCATION (Fused Location Provider)
-            LocationRequest locationRequest = new LocationRequest.Builder(5000) // Interval in milliseconds
-                    .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
-                    .build();
+            //LocationRequest locationRequest = new LocationRequest.Builder(5000) // Interval in milliseconds
+              //      .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
+                //    .build();
 
             // Ensure you have permission granted here (usually done in MainActivity)
             // This is pseudo-code for the permission check:
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                // Permission is granted, now request location updates
-                fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null);
-            } else {
-                // Log a warning that permissions were not granted
-                Log.w(TAG, "Location permission not granted. Cannot start GPS updates.");
-            }
         }
     }
 
@@ -120,7 +119,11 @@ public class SensorService implements SensorEventListener {
             Log.e(TAG, "SUCCESS: Listener is unregistered.");
             sensorManager.unregisterListener(this);
 
-            fusedLocationClient.removeLocationUpdates(locationCallback);
+            //fusedLocationClient.removeLocationUpdates(locationCallback);
+            if (executorService != null && !executorService.isShutdown()) {
+                // Use shutdownNow() to interrupt pending tasks
+                executorService.shutdownNow();
+            }
         }
     }
 
@@ -129,12 +132,12 @@ public class SensorService implements SensorEventListener {
         long timestamp = System.currentTimeMillis();
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             latestAccel = event.values.clone();
-            String payload = String.format("%d,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.1f,%s",
+            String payload = String.format("%d,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.1f",
                     timestamp,
                     latestAccel[0], latestAccel[1], latestAccel[2],
                     latestGyro[0], latestGyro[1], latestGyro[2],
-                    latestHeartRate,
-                    latestGpsData // Format is "Lat,Lon"
+                    latestHeartRate
+                    //latestGpsData // Format is "Lat,Lon"
             );
 
             // Notify the listener with the new data
@@ -144,10 +147,10 @@ public class SensorService implements SensorEventListener {
 
             sendMessageToPhone(payload.getBytes());
         }// 2. GYROSCOPE: Just store the latest value
-        else if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
+        if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
             latestGyro = event.values.clone();
         }// 3. HEART RATE: Just store the latest value
-        else if (event.sensor.getType() == Sensor.TYPE_HEART_RATE) {
+        if (event.sensor.getType() == Sensor.TYPE_HEART_RATE) {
             latestHeartRate = event.values[0];
         }// 4. STEP COUNTER: Just store the latest value
         //else if (event.sensor.getType() == Sensor.TYPE_STEP_COUNTER) {
@@ -156,18 +159,39 @@ public class SensorService implements SensorEventListener {
     }
 
     public void sendMessageToPhone(byte[] payload) {
-        new Thread(() -> {
-            try {
-                List<Node> connectedNodes = Tasks.await(Wearable.getNodeClient(context).getConnectedNodes());
-                for (Node node : connectedNodes) {
-                    Task<Integer> sendTask = Wearable.getMessageClient(context).sendMessage(node.getId(), ACCEL_DATA_PATH, payload);
-                    sendTask.addOnSuccessListener(integer -> Log.d(TAG, "Message sent successfully to " + node.getDisplayName()));
-                    sendTask.addOnFailureListener(e -> Log.e(TAG, "Message failed to send.", e));
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.submit(() -> {
+                try {
+                    List<Node> connectedNodes = Tasks.await(Wearable.getNodeClient(context).getConnectedNodes());
+                    for (Node node : connectedNodes) {
+                        Task<Integer> sendTask = Wearable.getMessageClient(context).sendMessage(node.getId(), ACCEL_DATA_PATH, payload);
+                        sendTask.addOnSuccessListener(integer -> Log.d(TAG, "Message sent successfully to " + node.getDisplayName()));
+                        sendTask.addOnFailureListener(e -> Log.e(TAG, "Message failed to send.", e));
+                    }
+                } catch (ExecutionException | InterruptedException e) {
+                    Log.e(TAG, "Error finding connected nodes", e);
                 }
-            } catch (ExecutionException | InterruptedException e) {
-                Log.e(TAG, "Error finding connected nodes", e);
-            }
-        }).start();
+            });
+        }
+    }
+
+    public void sendLabelToPhone(String label) {
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.submit(() -> {
+                try {
+                    byte[] payload = label.getBytes();
+                    List<Node> connectedNodes = Tasks.await(Wearable.getNodeClient(context).getConnectedNodes());
+                    for (Node node : connectedNodes) {
+                        // Send the message using the new label path
+                        Task<Integer> sendTask = Wearable.getMessageClient(context).sendMessage(node.getId(), LABEL_DATA_PATH, payload);
+                        sendTask.addOnSuccessListener(integer -> Log.d(TAG, "Label sent successfully: " + label));
+                        sendTask.addOnFailureListener(e -> Log.e(TAG, "Label failed to send.", e));
+                    }
+                } catch (ExecutionException | InterruptedException e) {
+                    Log.e(TAG, "Error finding connected nodes to send label", e);
+                }
+            });
+        }
     }
 
     @Override
