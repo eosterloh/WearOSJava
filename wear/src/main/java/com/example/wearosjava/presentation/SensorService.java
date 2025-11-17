@@ -57,6 +57,8 @@ public class SensorService implements SensorEventListener {
 
     private ExecutorService executorService;
 
+    private static final int AccelGyroHZ = 100;
+
     public SensorService(Context context, SensorDataUpdateListener listener) { // Corrected constructor
         this.context = context;
         this.listener = listener; // Initialized listener
@@ -88,13 +90,14 @@ public class SensorService implements SensorEventListener {
             if (executorService == null || executorService.isShutdown()) {
                 executorService = Executors.newSingleThreadExecutor();
             }
+            int samplingPeriod = 10000; //micro seconds
             // 1. ACCELEROMETER (already done)
             if (accelerometer == null) accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-            if (accelerometer != null) sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST); // Use FASTEST for ML data
+            if (accelerometer != null) sensorManager.registerListener(this, accelerometer, AccelGyroHZ); // Use FASTEST for ML data
 
             // 2. GYROSCOPE
             if (gyroscope == null) gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-            if (gyroscope != null) sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_FASTEST);
+            if (gyroscope != null) sensorManager.registerListener(this, gyroscope, AccelGyroHZ);
 
             // 3. HEART RATE
             if (heartRateSensor == null) heartRateSensor = sensorManager.getDefaultSensor(Sensor.TYPE_HEART_RATE);
