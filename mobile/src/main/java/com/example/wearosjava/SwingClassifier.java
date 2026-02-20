@@ -1,19 +1,14 @@
 package com.example.wearosjava;
 import org.tensorflow.lite.Interpreter;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
 
 import android.content.Context;
-import android.content.res.AssetFileDescriptor;
-import android.app.Activity;
 import android.util.Log;
 
-import java.lang.reflect.Array;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 public class SwingClassifier {
     //Good DS for the buffer? linkedlist or arraylist. Using arraylist
@@ -77,31 +72,30 @@ public class SwingClassifier {
 
     private void initializeInterpreter(Context context) {
         try {
-            MappedByteBuffer model = loadModelFile(context);
+            ByteBuffer model = loadModelFile(context);
+            if (model == null) return;
             tflite = new Interpreter(model);
         } catch (IOException e) {
-            Log.e(TAG, "Error initializing interpreter:" + e.getMessage());
+            Log.e(TAG, "Error initializing interpreter", e);
         }
     }
 
     /**
-     * Helper function for loading the model preparing for inference.
-     * @param context the context that the identificaiton is happening
-     * @return
-     * @throws IOException
+     * Load model from assets into a direct ByteBuffer with native order (required by TFLite).
+     * Model file must be in mobile/src/main/assets/
      */
-    private MappedByteBuffer loadModelFile(Context context) throws IOException {
-        try{
-            AssetFileDescriptor fileDescriptor = context.getAssets().openFd(modelName);
-            FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor());
-            FileChannel fileChannel = inputStream.getChannel();
-            long startOffset = fileDescriptor.getStartOffset();
-            long declaredLength = fileDescriptor.getDeclaredLength();
-            return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
-        } catch (IOException e) {
-            Log.e(TAG, "Error loading model file" + e.getMessage());
+    private ByteBuffer loadModelFile(Context context) throws IOException {
+        try (InputStream is = context.getAssets().open(modelName);
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] chunk = new byte[8192];
+            int n;
+            while ((n = is.read(chunk)) != -1) out.write(chunk, 0, n);
+            byte[] bytes = out.toByteArray();
+            ByteBuffer buffer = ByteBuffer.allocateDirect(bytes.length).order(ByteOrder.nativeOrder());
+            buffer.put(bytes);
+            buffer.rewind();
+            return buffer;
         }
-        return null;
     }
 
 }
