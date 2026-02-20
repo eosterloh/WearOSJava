@@ -53,7 +53,8 @@ public class SensorService implements SensorEventListener {
     //Paths of services
     private static final String TAG = "SensorService";
     private static final String ACCEL_DATA_PATH = "/accel_data";
-    private static final String LABEL_DATA_PATH = "/swing_label";
+    //DEPRECATED FOR TRAINING ONLY
+    //private static final String LABEL_DATA_PATH = "/swing_label";
 
     private ExecutorService executorService;
 
@@ -178,6 +179,8 @@ public class SensorService implements SensorEventListener {
         }
     }
 
+
+    /* DEPRECATED: for training only
     public void sendLabelToPhone(String label) {
         if (executorService != null && !executorService.isShutdown()) {
             executorService.submit(() -> {
@@ -196,6 +199,8 @@ public class SensorService implements SensorEventListener {
             });
         }
     }
+
+     */
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {

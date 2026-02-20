@@ -18,39 +18,70 @@ public class DataLayerListenerService extends WearableListenerService {
     private static final String LABEL_DATA_PATH = "/swing_label";
 
     private DataProccessor dataProccessor;
+    private SwingClassifier swingClassifier;
 
 
     @Override
     public void onCreate() {
         super.onCreate();
-        dataProccessor = new DataProccessor(getApplicationContext());
-        dataProccessor.startTrainingSession();
+        Log.d(TAG, "onCreate: starting");
+        try {
+            dataProccessor = new DataProccessor(getApplicationContext());
+            Log.d(TAG, "onCreate: DataProccessor created");
+            dataProccessor.startTrainingSession();
+            Log.d(TAG, "onCreate: training session started");
+            swingClassifier = new SwingClassifier(getApplicationContext());
+            Log.d(TAG, "onCreate: SwingClassifier created");
+        } catch (Throwable t) {
+            Log.e(TAG, "onCreate: crash during init", t);
+            throw t;
+        }
+        Log.d(TAG, "onCreate: finished");
     }
 
     @Override
     public void onMessageReceived(MessageEvent messageEvent) {
+        Log.d(TAG, "onMessageReceived: path=" + messageEvent.getPath() + " dataLength=" + (messageEvent.getData() != null ? messageEvent.getData().length : 0));
         byte[] data = messageEvent.getData();
-        String message = new String(data);
+        if (data == null) {
+            Log.e(TAG, "onMessageReceived: data is null");
+            return;
+        }
+        String message;
+        try {
+            message = new String(data);
+        } catch (Throwable t) {
+            Log.e(TAG, "onMessageReceived: failed to decode message", t);
+            return;
+        }
 
         if (messageEvent.getPath().equals(ACCEL_DATA_PATH)){
-            Log.d(TAG, "Received message: " + message);
+            Log.v(TAG, "Received message: " + message);
 
             // NEW USAGE: Write the data to the local file
             if (dataProccessor != null) {
                 dataProccessor.appendRawData(message);
+            }
+            if (swingClassifier != null){
+                swingClassifier.addData(message);
             }
             Intent intent = new Intent("wearable_data_event");
             String heartRate = parseHeartRateFromRaw(message);
             intent.putExtra("message", "Data live:"+ heartRate);
 
             LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-        } else if (messageEvent.getPath().equals(LABEL_DATA_PATH)) {
+            if (swingClassifier.isSwing()){
+                dataProccessor.logSwing("swing");
+                //Phone Screen turns green
+
+            }
+        } /*else if (messageEvent.getPath().equals(LABEL_DATA_PATH)) { DEPRECATED: for training only
             Log.d(TAG, "Received swing label: " + message);
             if (dataProccessor != null) {
                 // Log the label event. The DataProccessor generates the timestamp.
                 dataProccessor.logSwing(message);
-            }
-        } else {
+            }*/
+        else {
             super.onMessageReceived(messageEvent);
         }
     }

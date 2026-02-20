@@ -4,14 +4,12 @@ import android.os.Bundle;
 import androidx.activity.ComponentActivity;
 import com.example.wearosjava.R; // Correct import for your R file
 import android.widget.TextView;
-import android.widget.Button;
 import android.view.WindowManager;
 
 public class WearMainActivity extends ComponentActivity implements SensorDataUpdateListener{
     private SensorService sensorService;
     private TextView accelTextView;
-    private Button labelSwingButton;
-    private boolean isSwingInProgress;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,27 +21,7 @@ public class WearMainActivity extends ComponentActivity implements SensorDataUpd
         sensorService = new SensorService(this,this);
 
         accelTextView = findViewById(R.id.accel_data_text);
-        labelSwingButton = findViewById(R.id.label_swing_button_wear);
-
-        labelSwingButton.setOnClickListener(v -> {
-            String swingLabel;
-            if (!isSwingInProgress) {
-                // STATE 1: Start Swing
-                swingLabel = "START_SWING";
-                isSwingInProgress = true;
-                labelSwingButton.setText("END SWING");
-            } else {
-                // STATE 2: End Swing
-                swingLabel = "END_SWING";
-                isSwingInProgress = false;
-                labelSwingButton.setText("START SWING");
-            }
-            // Send the label event to the phone
-            sensorService.sendLabelToPhone(swingLabel);
-
-            // Update the data text view to show the event
-            accelTextView.setText("Event: " + swingLabel);
-        });
+        accelTextView.setText("Data Streaming ...");
     }
 
     @Override
@@ -53,6 +31,8 @@ public class WearMainActivity extends ComponentActivity implements SensorDataUpd
         sensorService.startListen();
     }
 
+
+    //Thinking about removing this, keep sending data even when watch is sleeping, may be asleep during swing.
     @Override
     protected void onPause() {
         super.onPause();

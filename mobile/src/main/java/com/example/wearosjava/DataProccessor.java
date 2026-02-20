@@ -49,8 +49,6 @@ public class DataProccessor {
         }catch (IOException e) {
             Log.e(TAG, "Error starting training session: " + e.getMessage());
         }
-
-
     }
 
     public void appendRawData(String rawData){

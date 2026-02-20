@@ -24,13 +24,6 @@
             android:textColor="@android:color/white"
             android:padding="8dp"/>
 
-        <Button
-            android:id="@+id/label_swing_button_wear"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="START SWING"
-            android:layout_marginTop="16dp"/>
-
     </LinearLayout>
 
 </androidx.wear.widget.BoxInsetLayout>
