@@ -5,6 +5,9 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
 import android.util.Log;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
@@ -18,17 +21,30 @@ public class SensorService implements SensorEventListener {
     private SensorManager sensorManager;
     private Sensor accelerometer;
     private Context context;
-    private SensorDataUpdateListener listener; // Added listener field
+    private SensorDataUpdateListener listener;
+    private SwingDetectorNative swingDetector;
+    private HandlerThread sensorThread;
+    private Handler sensorHandler;
 
     private static final String TAG = "SensorService";
     private static final String ACCEL_DATA_PATH = "/accel_data";
+    private static final int SAMPLING_PERIOD_US = SensorManager.SENSOR_DELAY_NORMAL;
+    private static final int MAX_REPORT_LATENCY_US = 0;
 
-    public SensorService(Context context, SensorDataUpdateListener listener) { // Corrected constructor
+    public SensorService(Context context, SensorDataUpdateListener listener) {
+        this(context, listener, null);
+    }
+
+    public SensorService(Context context, SensorDataUpdateListener listener, SwingDetectorNative swingDetector) {
         this.context = context;
-        this.listener = listener; // Initialized listener
+        this.listener = listener;
+        this.swingDetector = swingDetector;
         if (context != null) {
             sensorManager = (SensorManager) context.getSystemService(SENSOR_SERVICE);
         }
+        sensorThread = new HandlerThread("SensorThread");
+        sensorThread.start();
+        sensorHandler = new Handler(sensorThread.getLooper());
     }
 
     public void startListen() {
@@ -38,7 +54,7 @@ public class SensorService implements SensorEventListener {
             }
 
             if (accelerometer != null) {
-                sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+                sensorManager.registerListener(this, accelerometer, SAMPLING_PERIOD_US, MAX_REPORT_LATENCY_US, sensorHandler);
                 Log.d(TAG, "SUCCESS: Accelerometer listener registered.");
             } else {
                 Log.e(TAG, "FAILURE: Accelerometer sensor was not found on this device.");
@@ -48,8 +64,8 @@ public class SensorService implements SensorEventListener {
 
     public void stopListen() {
         if (sensorManager != null) {
-            Log.e(TAG, "SUCCESS: Listener is unregistered.");
             sensorManager.unregisterListener(this);
+            Log.d(TAG, "Listener is unregistered.");
         }
     }
 
@@ -64,6 +80,10 @@ public class SensorService implements SensorEventListener {
             // Notify the listener with the new data
             if (listener != null) {
                 listener.onDataUpdated(payload);
+            }
+
+            if (swingDetector != null) {
+                swingDetector.addSample(x, y, z);
             }
 
             sendMessageToPhone(payload.getBytes());
