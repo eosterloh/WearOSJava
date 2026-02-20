@@ -1,14 +1,7 @@
 package com.example.wearosjava;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.IntentFilter;
-import android.util.Log;
-import com.google.android.gms.wearable.MessageEvent;
-import com.google.android.gms.wearable.WearableListenerService;
 import android.content.Intent;
 import android.util.Log;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.WearableListenerService;
 
@@ -43,7 +36,8 @@ public class DataLayerListenerService extends WearableListenerService {
             String heartRate = parseHeartRateFromRaw(message);
             intent.putExtra("message", "Data live:"+ heartRate);
 
-            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+            intent.setPackage(getPackageName());
+            sendBroadcast(intent);
         } else if (messageEvent.getPath().equals(LABEL_DATA_PATH)) {
             Log.d(TAG, "Received swing label: " + message);
             if (dataProccessor != null) {
@@ -55,10 +49,13 @@ public class DataLayerListenerService extends WearableListenerService {
         }
     }
 
+    private static final String SWING_DATA_FILE = "swingData.csv";
+    private static final String SWING_LABELS_FILE = "swingLabels.csv";
+
     @Override
-    public void onDestroy(){
+    public void onDestroy() {
         super.onDestroy();
-        if (dataProccessor != null){
+        if (dataProccessor != null) {
             dataProccessor.endSession();
         }
     }

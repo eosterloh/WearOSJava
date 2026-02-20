@@ -6,7 +6,14 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.widget.TextView;
 import androidx.activity.ComponentActivity;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+
+
+import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class MainActivity extends ComponentActivity{
     private TextView receivedDataTextView;
@@ -24,15 +31,13 @@ public class MainActivity extends ComponentActivity{
     @Override
     protected void onResume() {
         super.onResume();
-        // Register the BroadcastReceiver to listen for messages from the WearableListenerService
-        LocalBroadcastManager.getInstance(this).registerReceiver(dataReceiver, new IntentFilter("wearable_data_event"));
+        registerReceiver(dataReceiver, new IntentFilter("wearable_data_event"), Context.RECEIVER_NOT_EXPORTED);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        // Unregister the receiver to avoid memory leaks
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(dataReceiver);
+        unregisterReceiver(dataReceiver);
     }
 
     private class DataReceiver extends BroadcastReceiver {
