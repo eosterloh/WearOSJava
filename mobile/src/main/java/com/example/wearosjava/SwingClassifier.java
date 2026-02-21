@@ -20,6 +20,8 @@ public class SwingClassifier {
     private static final int WINDOWSIZE = 800;
     private static final int NUMFEATURES = 6;
     private static final float THRESHOLD = 0.8f;
+    private static final float[] means =    {-6.347317f,   -3.6151795f ,  1.8212118f,  -0.0238195f,   0.02920377f, -0.02548838f};
+    private static final float[] stddev =    {7.5649176f,  6.2568493f,  5.7432575f,  1.5803802f,  0.94720036f, 1.5644057f};
 
 
 
@@ -38,6 +40,7 @@ public class SwingClassifier {
         float[] dataArray = new float[NUMFEATURES];
         for(int i = 0; i<NUMFEATURES; i++){
             dataArray[i] = Float.parseFloat(parts[i]);
+            dataArray[i] = (dataArray[i] - means[i])/stddev[i];
         }
         buffer.add(dataArray);
 
